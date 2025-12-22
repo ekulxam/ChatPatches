@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.JsonOps;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
@@ -16,6 +17,8 @@ import net.minecraft.client.gui.hud.ChatHudLine;
 import net.minecraft.client.gui.hud.MessageIndicator;
 import net.minecraft.client.gui.screen.GameMenuScreen;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.registry.RegistryOps;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextCodecs;
@@ -40,6 +43,7 @@ import java.util.function.Function;
 
 import static obro1961.chatpatches.ChatPatches.LOGGER;
 import static obro1961.chatpatches.ChatPatches.config;
+import static obro1961.chatpatches.ChatPatches.jsonOps;
 
 /**
  * Represents the chat log file in the run directory located at {@link #PATH}.
@@ -47,6 +51,13 @@ import static obro1961.chatpatches.ChatPatches.config;
  * backing up the messages and history stored within.
  */
 public class ChatLog {
+
+    public static DynamicRegistryManager.Immutable a = null;
+    public static final Codec<ObjectList<Text>> TEXT_CODEC = TextCodecs.CODEC
+            .listOf()
+            .xmap(ChatLog::newSyncedObjectList, Function.identity()) // makes the lists synchronized and mutable
+            .fieldOf("messages") // with a default value, errors are silently ignored
+            .codec();
     /**
      * Serializes as a {@link Pair} to avoid needing a dedicated
      * class. {@link #messages} are first and {@link #history}
@@ -55,11 +66,7 @@ public class ChatLog {
      * object list}.
      */
     public static final Codec<Pair<ObjectList<Text>, ObjectList<String>>> CODEC = Codec.pair(
-        TextCodecs.CODEC
-            .listOf()
-            .xmap(ChatLog::newSyncedObjectList, Function.identity()) // makes the lists synchronized and mutable
-            .fieldOf("messages") // with a default value, errors are silently ignored
-            .codec(),
+        TEXT_CODEC,
         Codec.STRING
             .listOf()
             .xmap(ChatLog::newSyncedObjectList, Function.identity()) // makes the lists synchronized and mutable
@@ -263,7 +270,8 @@ public class ChatLog {
 
         try {
             ChatPatches.usingUnsafeCodec = true; // (#236)
-            JsonElement json = CODEC.encodeStart(ChatPatches.jsonOps(), Pair.of(messages, history))
+            RegistryOps<JsonElement> ops = a != null ? a.getOps(JsonOps.INSTANCE) : jsonOps();
+            JsonElement json = CODEC.encodeStart(ops, Pair.of(messages, history))
                 .resultOrPartial(e -> ChatPatches.logReportMsg(new JsonParseException(e)))
                 .orElseThrow();
             ChatPatches.usingUnsafeCodec = false;

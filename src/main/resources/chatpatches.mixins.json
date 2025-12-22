@@ -4,14 +4,17 @@
   "package": "obro1961.chatpatches.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixinPriority": 2000,
-  "mixins": [],
+  "mixins": [
+    "whatamidoing.RegistryFixedCodecMixin"
+  ],
   "client": [
-    "listener.MessageHandlerMixin",
     "gui.ChatHudMixin",
     "gui.ChatScreenMixin",
     "gui.ScreenMixin",
+    "listener.MessageHandlerMixin",
     "security.ClickEvent$ActionMixin",
-    "security.CPNHMixin"
+    "security.CPNHMixin",
+    "whatamidoing.ClientConfigurationNetworkHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
