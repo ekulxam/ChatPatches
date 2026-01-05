@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixinPriority": 2000,
   "mixins": [
+    "whatamidoing.RegistryElementCodecMixin",
     "whatamidoing.RegistryFixedCodecMixin"
   ],
   "client": [
